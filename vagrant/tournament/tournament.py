@@ -107,4 +107,10 @@ def swissPairings():
         name2: the second player's name
     """
 
-
+    sql = "SELECT player_id, player_name FROM standings;"
+    result = run_query_with_result(sql)
+    matches = []
+    for i in range(0, len(result), 2):
+        match = result[i] + result[i + 1]
+        matches.append(tuple(match))
+    return matches
