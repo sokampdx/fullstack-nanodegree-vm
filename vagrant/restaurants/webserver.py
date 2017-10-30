@@ -44,6 +44,24 @@ class webServerHandler(BaseHTTPRequestHandler):
     output += "</form>"
     return output
 
+  def _delete_form(self, restaurant):
+    output = ""
+    output += "<h1>" + "Are you sure you want to delete " + restaurant.name + "?" + "</h1>"
+    output += "<form method='POST' enctype='multipart/form-data' action = '/restaurants/%s/delete' >" % restaurant.id
+    output += "<input type='submit' value='Delete'>"
+    output += "</form>"
+    return output
+
+  def _info_for_each(self, restaurant):
+    output = ""
+    output += restaurant.name
+    output += "</br>"
+    output += "<a href ='/restaurants/%s/edit' >Edit </a> " % restaurant.id
+    output += "</br>"
+    output += "<a href ='/restaurants/%s/delete'> Delete </a>" % restaurant.id
+    output += "</br>" * 3
+    return output
+
   def do_GET(self):
     try:
       if self.path.endswith("/restaurants/new"):
@@ -58,12 +76,7 @@ class webServerHandler(BaseHTTPRequestHandler):
 
         self._send_text_header(200)
         for restaurant in restaurants:
-          output += restaurant.name
-          output += "</br>"
-          output += "<a href ='/restaurants/%s/edit' >Edit </a> " % restaurant.id
-          output += "</br>"
-          output += "<a href =' #'> Delete </a>"
-          output += "</br>" * 3
+          output += self._info_for_each(restaurant)
 
         content = self._wrap_body_html(output)
         self.wfile.write(content)
@@ -77,11 +90,30 @@ class webServerHandler(BaseHTTPRequestHandler):
           content = self._wrap_body_html(self._edit_form(restaurant))
           self.wfile.write(content)
 
+      if re.search(r"/restaurants/\d+/delete", self.path):
+        restaurant_id_path = self.path.split("/")[2]
+        restaurant = session.query(Restaurant).filter_by(id=restaurant_id_path).one()
+
+        if restaurant:
+          self._send_text_header(200)
+          content = self._wrap_body_html(self._delete_form(restaurant))
+          self.wfile.write(content)
+
     except IOError:
       self.send_error(404, 'File Not Found: %s' % self.path)
 
   def do_POST(self):
     try:
+      if re.search(r"/restaurants/\d+/delete", self.path):
+        restaurant_id_path = self.path.split("/")[2]
+        restaurant = session.query(Restaurant).filter_by(id=restaurant_id_path).one()
+
+        if restaurant:
+          session.delete(restaurant)
+          session.commit()
+
+          self._send_text_header_with_location(301)
+
       if re.search(r"/restaurants/\d+/edit", self.path):
         ctype, pdict = cgi.parse_header(self.headers.getheader('content-type'))
 
@@ -95,8 +127,8 @@ class webServerHandler(BaseHTTPRequestHandler):
           if restaurant:
             restaurant.name = message_content[0]
 
-            session.commit()
             session.add(restaurant)
+            session.commit()
 
             self._send_text_header_with_location(301)
 
