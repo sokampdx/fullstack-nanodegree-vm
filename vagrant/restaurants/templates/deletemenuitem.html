@@ -1,8 +1,12 @@
 <html>
-    <body>
-        <h1> Are you sure you want to delete {{item.name}} for {{restaurant.name}}</h1>
+    <head>
+        <link rel=stylesheet type=text/css href="{{ url_for('static', filename='styles.css')  }}">
+    </head>
+    <body class='pane'>
+        <h1>Please confirm item deletion</h1>
         <form action="{{url_for('deleteMenuItem', restaurant_id=restaurant.id, menu_id=item.id)}}" method='POST'>
-            <p>Name:</p>
+            <p>Restaurant: {{restaurant.name}}</p>
+            <p>Item to be deteled: {{item.name}}</p>
             <input type='submit' value='Delete'>
             <a href="{{url_for('restaurant_menu', restaurant_id=restaurant.id )}}">Cancel</a>
         </form>

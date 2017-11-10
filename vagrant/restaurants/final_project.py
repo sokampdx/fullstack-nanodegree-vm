@@ -16,13 +16,18 @@ def show_restaurants():
   restaurants = session.query(Restaurant)
   return render_template('restaurants.html', restaurants=restaurants)
 
+@app.route('/restaurants/JSON')
+def restaurant_json():
+  restaurants = session.query(Restaurant)
+  return jsonify(Restaurant=[r.serialize for r in restaurants])
+
 @app.route('/restaurants/new', methods=['GET', 'POST'])
 def newRestaurant():
   if request.method == 'POST':
-    new_restaurant = Restaurant(name=request.form['name'])
-    session.add(new_restaurant)
+    restaurant = Restaurant(name=request.form['name'])
+    session.add(restaurant)
     session.commit()
-    flash("New restaurant " + new_restaurant.name + " created!")
+    flash("New restaurant " + restaurant.name + " created!")
     return redirect(url_for('show_restaurants'))
   else:
     return render_template('newrestaurant.html')
@@ -77,10 +82,12 @@ def menu_item_json(restaurant_id, menu_id):
 @app.route('/restaurants/<int:restaurant_id>/menu/new', methods=['GET', 'POST'])
 def newMenuItem(restaurant_id):
   if request.method == 'POST':
-    new_item = MenuItem(name=request.form['name'], restaurant_id=restaurant_id)
-    session.add(new_item)
+    item = MenuItem(name=request.form['name'], restaurant_id=restaurant_id)
+    item.description = request.form['description']
+    item.price = request.form['price']
+    session.add(item)
     session.commit()
-    flash("New menu item " + new_item.name + " created!")
+    flash("New menu item " + item.name + " created!")
     return redirect(url_for('restaurant_menu', restaurant_id=restaurant_id))
   else:
     restaurant = session.query(Restaurant).filter_by(id=restaurant_id).one()
@@ -91,12 +98,22 @@ def newMenuItem(restaurant_id):
 def editMenuItem(restaurant_id, menu_id):
   item = session.query(MenuItem).filter_by(id=menu_id).one()
   if request.method == 'POST':
+    item_old_name = item.name
     item_name = request.form['name']
-    if item_name:
-      item.name = item_name
+    item_description = request.form['description']
+    item_price = request.form['price']
+    if item_name or item_description or item_price:
+      if item_name:
+        item.name = item_name
+        flash(item_old_name + " has been renamed to " + item.name)
+      if item_description:
+        item.description = item_description
+        flash(item_old_name + " description has changed")
+      if item_price:
+        item.price = item_price
+        flash(item_old_name + " has changed its price to " + item.price)
       session.add(item)
       session.commit()
-      flash(item_name + " has been edited!")
     return redirect(url_for('restaurant_menu', restaurant_id=restaurant_id))
   else:
     restaurant = session.query(Restaurant).filter_by(id=restaurant_id).one()
